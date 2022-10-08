@@ -1,0 +1,21 @@
+version: "3.8"
+
+name: vrp-backend
+
+x-default-app: &default-app
+  build:
+    context: .
+    target: app
+    # both syntax work
+    args:
+      - UID=1000
+      - "GID=${GID:-1000}"
+  tty: true
+
+services:
+  solver:
+    <<: *default-app
+    # Do not specify container_name as they may 
+    # conflict becoz of constant value. Same goes for ports.
+    # Let docker handle the naming of containers.
+    # container_name: flask_container

@@ -1,0 +1,10 @@
+services:
+  solver:
+    build:
+      args:
+        - FLASK_DEBUG=true
+    ports:
+      - "8000:8000"
+    # https://docs.docker.com/compose/environment-variables/
+    # env_file:
+    #   - ".env"

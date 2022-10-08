@@ -1,0 +1,22 @@
+services:
+  solver:
+    build: 
+      args:
+        - FLASK_DEBUG=false
+    restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
+    stop_grace_period: 3s
+    deploy:
+      # resources:
+      #   limits:
+      #     cpus: "${DOCKER_WEB_CPUS:-0}"
+      #     memory: "${DOCKER_WEB_MEMORY:-0}"
+      replicas: 2
+    ports:
+      - "8000"
+    
+    # healthcheck:
+    #   test: "${DOCKER_WEB_HEALTHCHECK_TEST:-curl localhost:8000/up}"
+    #   interval: "60s"
+    #   timeout: "3s"
+    #   start_period: "5s"
+    #   retries: 3

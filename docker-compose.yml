@@ -15,7 +15,14 @@ x-default-app: &default-app
 services:
   solver:
     <<: *default-app
+    networks:
+      - flask_net
     # Do not specify container_name as they may 
     # conflict becoz of constant value. Same goes for ports.
     # Let docker handle the naming of containers.
     # container_name: flask_container
+
+networks:
+  flask_net:
+    name: flask_net
+    driver: bridge

@@ -32,7 +32,7 @@ async def generate_route():
     #     truck_route = find_route()
 
     #     return jsonify({"response": "success","output":truck_route})
-    truck_route = await find_route()
+    truck_route = find_route()
     return jsonify({"response": "success","output":truck_route})
 
 

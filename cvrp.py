@@ -10,19 +10,19 @@ def find_route():
   with open("./upload/A-n36-k5.vrp", "r") as cvrp_file:
     data = {}
     parser = re.compile(
-  """NAME : (?P<name>.*)
-  COMMENT : (?P<comment>.*)
-  TYPE : (?P<type>.*)
-  DIMENSION : (?P<dimension>.*)
-  EDGE_WEIGHT_TYPE : (?P<edge_weight_type>.*)
-  CAPACITY : (?P<capacity>.*)
-  NODE_COORD_SECTION\s*
-  (?P<node_coord_section>[\d|\s]+)
-  DEMAND_SECTION\s*
-  (?P<demand_section>[\d|\s]+)
-  DEPOT_SECTION\s*
-  (?P<depot_node>.*)\s*
-  """, re.MULTILINE)
+"""NAME : (?P<name>.*)
+COMMENT : (?P<comment>.*)
+TYPE : (?P<type>.*)
+DIMENSION : (?P<dimension>.*)
+EDGE_WEIGHT_TYPE : (?P<edge_weight_type>.*)
+CAPACITY : (?P<capacity>.*)
+NODE_COORD_SECTION\s*
+(?P<node_coord_section>[\d|\s]+)
+DEMAND_SECTION\s*
+(?P<demand_section>[\d|\s]+)
+DEPOT_SECTION\s*
+(?P<depot_node>.*)\s*
+""", re.MULTILINE)
     problemInfo = {}
     text = cvrp_file.read()
     matches = parser.match(text)
@@ -121,5 +121,5 @@ def find_route():
 
   #or tools
   data = create_data_model(matrix_d,demand,vehicle_capacity,no_of_vehicles)
-  route = main(data)
+  route = generate_routes(data)
   return route

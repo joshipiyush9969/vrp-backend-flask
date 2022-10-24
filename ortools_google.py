@@ -54,7 +54,7 @@ def print_solution(data, manager, routing, solution):
 
 
 
-def main(data):
+def generate_routes(data):
     # Instantiate the data problem.
 
     # Create the routing index manager.
@@ -114,5 +114,5 @@ def main(data):
 
 
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()

@@ -8,12 +8,13 @@ from random import randint
 from cvrp import *
 
 app = Flask(__name__)
+# Check running of instances for reverse proxy
 check = randint(0, 255)
  
 @app.route('/',methods = ['GET','POST'])
 def home():
     if(request.method == 'GET'):
-        data = 'Major OMG'
+        data = f'Major OMG: {check}'
         return jsonify({'data': data})
  
 

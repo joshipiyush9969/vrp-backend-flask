@@ -1,11 +1,14 @@
 import json
 import os
 from flask import Flask, flash, jsonify, request
+import logging
+from random import randint
 #from werkzeug import secure_filename
 
 from cvrp import *
 
 app = Flask(__name__)
+check = randint(0, 255)
  
 @app.route('/',methods = ['GET','POST'])
 def home():
@@ -34,4 +37,10 @@ async def generate_route():
 
 # main driver function
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=os.environ.get('FLASK_DEBUG', true))
+
+if __name__ != '__main__':
+	# For logging in prod
+    gunicorn_error_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_error_logger.handlers
+    app.logger.setLevel(gunicorn_error_logger.level)

@@ -1,7 +1,5 @@
 version: "3.8"
 
-name: vrp-backend
-
 x-default-app: &default-app
   build:
     context: .
@@ -16,13 +14,14 @@ services:
   solver:
     <<: *default-app
     networks:
-      - flask_net
+      - backend_net
     # Do not specify container_name as they may 
     # conflict becoz of constant value. Same goes for ports.
     # Let docker handle the naming of containers.
     # container_name: flask_container
 
 networks:
-  flask_net:
-    name: flask_net
-    driver: bridge
+  backend_net:
+    external: true
+    # name: backend_net
+    # driver: overlay

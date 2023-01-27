@@ -38,7 +38,7 @@ async def generate_route():
 
 # main driver function
 if __name__ == '__main__':
-    app.run(debug=os.environ.get('FLASK_DEBUG', true))
+    app.run(debug=os.environ.get('FLASK_DEBUG', True))
 
 if __name__ != '__main__':
 	# For logging in prod

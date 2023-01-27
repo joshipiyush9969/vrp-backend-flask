@@ -1,8 +1,11 @@
+version: "3.8"
+
 services:
   solver:
-    build: 
-      args:
-        - FLASK_DEBUG=false
+    image: jonty99/vrp-backend-solver:latest
+    # build: 
+    #   args:
+    #     - FLASK_DEBUG=false
     restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
     stop_grace_period: 3s
     deploy:
@@ -13,6 +16,8 @@ services:
       replicas: 2
     ports:
       - "8000"
+    environment:
+      - FLASK_DEBUG=false
     
     # healthcheck:
     #   test: "${DOCKER_WEB_HEALTHCHECK_TEST:-curl localhost:8000/up}"
@@ -26,9 +31,9 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
-      - flask_net
+      - backend_net
     depends_on:
-      # does not work with stack deploy
+      # ignored in with stack deploy
       - solver
     ports:
       - "4000:4000"

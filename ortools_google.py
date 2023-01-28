@@ -1,6 +1,7 @@
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 
+scalar = 100
 
 def create_data_model(matrix_d,demand,vehicle_capacity,no_of_vehicles):
     data = {}
@@ -18,7 +19,7 @@ def print_solution(data, manager, routing, solution):
     
     #vehicle_route_distance = [] Distance coming zero, still have to figure out, whats the problem
     """Prints solution on console."""
-    print(f"Objective: {solution.ObjectiveValue()}")
+    print(f"Objective: {solution.ObjectiveValue() // scalar}")
     total_distance = 0
     total_load = 0
     for vehicle_id in range(data["num_vehicles"]):
@@ -34,9 +35,8 @@ def print_solution(data, manager, routing, solution):
             plan_output += " {0} Load({1}) -> ".format(node_index, route_load)
             previous_index = index
             index = solution.Value(routing.NextVar(index))
-            print('ROUTE DISTANCE', previous_index, index, vehicle_id, routing.GetArcCostForVehicle(previous_index, index, vehicle_id))
             route_distance += routing.GetArcCostForVehicle(
-                previous_index, index, vehicle_id)
+                previous_index, index, vehicle_id) // scalar
         plan_output += " {0} Load({1})\n".format(manager.IndexToNode(index),
                                                  route_load)
         plan_output += "Distance of the route: {}m\n".format(route_distance)
@@ -108,6 +108,7 @@ def generate_routes(data):
     search_parameters.time_limit.FromSeconds(1)
 
     # Solve the problem.
+    # solution = routing.Solve()
     solution = routing.SolveWithParameters(search_parameters)
 
     # Print solution on console.

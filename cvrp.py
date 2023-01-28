@@ -9,6 +9,9 @@ from math import radians, cos, sin, asin, sqrt
 from pprint import pprint
 import random
 
+# Default scaling factor for distance matrix is 100
+# https://developers.google.com/optimization/routing/tsp#scaling
+scalar = 100
 
 def find_route():
     with open("./upload/A-n36-k5.vrp", "r") as cvrp_file:
@@ -128,24 +131,24 @@ DEPOT_SECTION\s*
 
     matrix_d = []
     demand = []
-    vehicle_capacity = []  # from frontend
+    vehicle_capacity = [100, 100, 100, 100, 100]  # from frontend
     no_of_vehicles = 5  # from frontend
 
     for lat1, lon1 in zip(node_Data["latitude"], node_Data["longitude"]):
         node = []
         for lat2, lon2 in zip(node_Data["latitude"], node_Data["longitude"]):
-            node.append(distance(lat1, lat2, lon1, lon2))
+            node.append(int(distance(lat1, lat2, lon1, lon2) * scalar))
         matrix_d.append(node)
 
     # pprint(matrix_d)
     for d in node_Data["demand"]:
         demand.append(d)
 
-    while sum(vehicle_capacity) < sum(demand):
-        capacity = []
-        for i in range(no_of_vehicles):
-            capacity.append(random.randint(max(demand), 100))
-        vehicle_capacity = capacity
+    # while sum(vehicle_capacity) < sum(demand):
+    #     capacity = []
+    #     for i in range(no_of_vehicles):
+    #         capacity.append(random.randint(max(demand), 100))
+    #     vehicle_capacity = capacity
 
     # pprint(matrix_d)
     print("demand =>", demand)

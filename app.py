@@ -27,6 +27,7 @@ def home():
         return jsonify({"Instance identifier": check})
 
 
+
 @app.route("/route", methods = ["GET", "POST"])
 def generate_route():
     # if "file" not in request.files:
@@ -78,41 +79,55 @@ def generate_route():
             "graphql": gql_result,
             "route": truck_route, 
         })
-    else:        
+    else:
+        print("hii")
+        #id = request.get_json()
+        #file = request.data.
+        id = "63d3cc605e7b25005923c0ec"
+        p1 = parse_file("A-n36-k5.vrp")
+        nodeData = p1.node_data.to_json(orient="records")
+        print(p1.vehicles)
+         
+        #TO NODEJS
+    #     query = gql(
+    #        """
+    #         mutation {
+    #             updateProblemInfo(id: $id, input: {
+    #                 name: $name,
+    #                 dimension: $dimension,
+    #                 vehicles: $vehicles,
+    #                 optimalValue: $optimalValue,
+    #                 capacity: $capacity,
+    #                 depotNode: $depotNode,
+    #                 nodeData: $nodeData,
+    #             }) {
+    #                 nModified
+    #                 n
+    #                 ok
+    #             }
+    #             }
+    #         """
+    #    )
+    #     variables = {'id':id,'name':p1.name,'dimension':p1.dimension,'vehicles':p1.vehicles,
+    #                 "optimalValue":p1.optimal_value,'capacity':p1.capacity,'depotNode':p1.depot_node
+    #                 ,"nodeData":nodeData}
+
+    #     client.execute(query, variables)
+
+        #Clustering
+
+        [clusters,vehicles] = cluster(p1.node_data,p1.vehicles)
+        for i in range(len(vehicles)):
+            pprint({"num_of_vehicles":vehicles[i], "data":clusters[i].to_json(orient="index")})
+
+        
+
         return jsonify({
             "clustered": clustered,
             "check": check, 
             "graphql": gql_result,
             "route": truck_route, 
         })
-    # query = gql(
-    #         """
-    #         mutation updateProblemInfo(id: ) {
-    #                 id
-    #                 name
-    #                 dimension
-    #                 vehicles
-    #                 optimalValue
-    #                 capacity
-    #                 depotNode
-    #                 nodeData {
-    #                     node
-    #                     latitude
-    #                     longitude
-    #                     demand
-    #                     priority
-    #                 }
-    #                 solution {
-    #                     routes {
-    #                         tour
-    #                         tourDistance
-    #                     }
-    #                     totalDistance
-    #                 }
-    #                 file
-    #         }
-    #         """
-    #     )
 
 # main driver function
 if __name__ == "__main__":

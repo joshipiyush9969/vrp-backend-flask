@@ -1,4 +1,4 @@
-import imp
+import math
 import pandas as pd
 import numpy as np
 import re
@@ -8,13 +8,15 @@ from ortools_google import *
 from math import radians, cos, sin, asin, sqrt
 from pprint import pprint
 import random
+from sklearn.cluster import KMeans
 
 # Default scaling factor for distance matrix is 100
 # https://developers.google.com/optimization/routing/tsp#scaling
 scalar = 100
 
-def find_route():
-    with open("./upload/A-n36-k5.vrp", "r") as cvrp_file:
+
+def parse_file(file):
+    with open("./upload/"+file, "r") as cvrp_file:
         data = {}
         parser = re.compile(
             """NAME : (?P<name>.*)
@@ -103,36 +105,37 @@ DEPOT_SECTION\s*
 
     p1 = ProblemInfo(**problemInfo)
 
-    node_Data = p1.node_data
-    print(node_Data)
+    return p1
 
-    # Distance one to node to another (Many to many)
-    def distance(lat1, lat2, lon1, lon2):
+def distance(lat1, lat2, lon1, lon2):
 
-        # The math module contains a function named
-        # radians which converts from degrees to radians.
-        lon1 = radians(lon1)
-        lon2 = radians(lon2)
-        lat1 = radians(lat1)
-        lat2 = radians(lat2)
+    # The math module contains a function named
+    # radians which converts from degrees to radians.
+    lon1 = radians(lon1)
+    lon2 = radians(lon2)
+    lat1 = radians(lat1)
+    lat2 = radians(lat2)
 
-        # Haversine formula
-        dlon = lon2 - lon1
-        dlat = lat2 - lat1
-        a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    # Haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
 
-        c = 2 * asin(sqrt(a))
+    c = 2 * asin(sqrt(a))
 
-        # Radius of earth in kilometers. Use 3956 for miles
-        r = 6371
+    # Radius of earth in kilometers. Use 3956 for miles
+    r = 6371
 
-        # calculate the result
-        return c * r
+    # calculate the result
+    return c * r
+
+
+def find_route(node_Data):
 
     matrix_d = []
     demand = []
-    vehicle_capacity = [100, 100, 100, 100, 100]  # from frontend
-    no_of_vehicles = 5  # from frontend
+    vehicle_capacity = [100, 100, 100, 100, 100] 
+    no_of_vehicles = 5  
 
     for lat1, lon1 in zip(node_Data["latitude"], node_Data["longitude"]):
         node = []
@@ -159,3 +162,33 @@ DEPOT_SECTION\s*
     data = create_data_model(matrix_d, demand, vehicle_capacity, no_of_vehicles)
     route = generate_routes(data)
     return route
+
+
+
+def cluster(node_Data,num_of_v):
+    v_sum = 0
+    num_of_v = int(num_of_v)
+    vehicles = []
+    d = {}
+    no_clusters = 3
+    
+    kmeans = KMeans(n_clusters = no_clusters, init ='k-means++')
+    kmeans.fit(node_Data[node_Data.columns[1:3]]) # Compute k-means clustering.
+    node_Data['cluster_label'] = kmeans.fit_predict(node_Data[node_Data.columns[1:3]])
+    centers = kmeans.cluster_centers_ # Coordinates of cluster centers.
+    labels = kmeans.predict(node_Data[node_Data.columns[1:3]]) # Labels of each point
+    node_Data.head(10)
+    clusters = list(set(node_Data['cluster_label'].tolist()))
+
+    for i in clusters:
+        total_demand = node_Data.loc[node_Data['cluster_label'] == i, 'demand'].sum()
+        print(total_demand)
+        vehicles.append(math.ceil(total_demand/100))
+        v_sum += math.ceil(total_demand/100)
+
+    if(v_sum>num_of_v):
+        num_of_v += 1   
+    for i in clusters:
+        d[i] = node_Data[node_Data['cluster_label'] == i]
+
+    return [d,vehicles]

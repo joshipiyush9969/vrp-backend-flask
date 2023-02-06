@@ -35,5 +35,9 @@ services:
     depends_on:
       # ignored in with stack deploy
       - solver
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
     ports:
       - "4000:4000"

@@ -5,8 +5,14 @@ services:
     build:
       args:
         - FLASK_DEBUG=true
+    command: ['flask', 'run', '-h', '0.0.0.0', '-p', '8000' ]
     ports:
-      - "8000:8000"
+      - "5000:8000"
+    environment:
+      - FLASK_APP=app
+      - NODE_URL=http://node:3000
+    volumes:
+      - ./:/app
     # https://docs.docker.com/compose/environment-variables/
     # env_file:
     #   - ".env"

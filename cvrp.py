@@ -96,11 +96,11 @@ DEPOT_SECTION\s*
             node_data,
         ):
             self.name = name
-            self.dimension = dimension
-            self.vehicles = vehicles
-            self.optimal_value = optimal_value
-            self.capacity = capacity
-            self.depot_node = depot_node
+            self.dimension = int(dimension)
+            self.vehicles = int(vehicles)
+            self.optimal_value = int(optimal_value)
+            self.capacity = int(capacity)
+            self.depot_node = int(depot_node)
             self.node_data = node_data
 
     p1 = ProblemInfo(**problemInfo)

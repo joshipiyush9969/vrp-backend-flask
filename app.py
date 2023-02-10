@@ -1,6 +1,7 @@
 import json
 import os
 from flask import Flask, flash, jsonify, request
+from flask_cors import CORS
 import logging
 from random import randint
 #from werkzeug import secure_filename
@@ -9,39 +10,28 @@ from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
 
 app = Flask(__name__)
+CORS(app)
 # Check running of instances for reverse proxy
-check = randint(0, 255)
+check = randint(0, 1000)
 
 # Graphql Client setup
 transport = RequestsHTTPTransport(
-    # url="http://127.0.0.1:3000/graphql",
-    url="https://countries.trevorblades.com/",
+    url=f'{os.environ.get("NODE_URL")}/graphql',
     verify=True,
     retries=3,
 )
-client = Client(transport=transport, fetch_schema_from_transport=True)
+client = Client(transport=transport, serialize_variables=True, parse_results=True, fetch_schema_from_transport=True)
  
-@app.route("/",methods = ["GET"])
+@app.route("/", methods = ["GET", "POST"])
 def home():
-    if(request.method == "GET"):
-        return jsonify({"Instance identifier": check})
+    return jsonify({
+        "Instance identifier": check, 
+    })
 
 
 
 @app.route("/route", methods = ["GET", "POST"])
 def generate_route():
-    # if "file" not in request.files:
-    #     return jsonify({"response": "failed"})
-    # file = request.files["file"]
-    # if file.filename == "":
-    #     return jsonify({"response": "failed"})
-    # if file:
-    #     filename = secure_filename(file.filename)
-    #     file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-
-    #     truck_route = find_route()
-
-    #     return jsonify({"response": "success","output":truck_route})
     """
         NOTE: rproxy means reverse proxy
         *. nodejs to solver at /route (id and file will be sent)
@@ -58,76 +48,89 @@ def generate_route():
             -> Total distance for all tour (arc) arjun will calculate in frontend dynamically so you can ignore
         *. 
     """
-    clustered = request.args.get("clustered") == "1"
-    gql_result, truck_route = None, None
-    if clustered:
-        query = gql(
-            """
-            query getContinents {
-                continents {
-                    code
-                    name
-                }
+    if (request.method == "POST"):
+        print('POST RAN')
+        clustered = request.args.get("clustered") == "1"
+        gql_result, truck_route = None, None
+        if clustered:
+            print("Executing /route?clustered=1")
+            truck_route = find_route()
+            return jsonify({
+                "clustered": clustered,
+                "check": check, 
+                "graphql": gql_result,
+                "route": truck_route, 
+            })
+        else:
+            print("Executing /route")
+            data = request.get_json()
+            print(data)
+            id = data.get('id')
+            uint8arr = data.get('file').get('data') # [78,65,77,69,32,...]
+            print(id, uint8arr)
+            # TODO: UInt8Array to File that can be given as input to parse_file
+            p1 = parse_file("A-n36-k5.vrp")
+            nodeData = p1.node_data.to_json(orient="records")
+            print(p1.vehicles)
+            
+            #TO NODEJS
+            query = gql(
+                """
+                    mutation UpdateProblemInfo(
+                            $id: ID!,
+                            $name: String
+                            $dimension: Int
+                            $vehicles: Int
+                            $optimalValue: Int
+                            $capacity: Int
+                            $depotNode: Int
+                            $nodeData: [NodeInfoInput]
+                        ) {
+                        updateProblemInfo(id: $id, input: {
+                            name: $name,
+                            dimension: $dimension,
+                            vehicles: $vehicles,
+                            optimalValue: $optimalValue,
+                            capacity: $capacity,
+                            depotNode: $depotNode,
+                            nodeData: $nodeData,
+                        }) {
+                            nModified
+                            n
+                            ok
+                        }
+                    }
+                """
+            )
+            variables = {
+                "id": id,
+                "name": p1.name,
+                "dimension": p1.dimension,
+                "vehicles": p1.vehicles,
+                "optimalValue": p1.optimal_value,
+                "capacity": p1.capacity,
+                "depotNode": p1.depot_node,
+                "nodeData": nodeData
             }
-            """
-        )
-        gql_result = client.execute(query)
-        truck_route = find_route()
-        return jsonify({
-            "clustered": clustered,
-            "check": check, 
-            "graphql": gql_result,
-            "route": truck_route, 
-        })
-    else:
-        print("hii")
-        #id = request.get_json()
-        #file = request.data.
-        id = "63d3cc605e7b25005923c0ec"
-        p1 = parse_file("A-n36-k5.vrp")
-        nodeData = p1.node_data.to_json(orient="records")
-        print(p1.vehicles)
-         
-        #TO NODEJS
-    #     query = gql(
-    #        """
-    #         mutation {
-    #             updateProblemInfo(id: $id, input: {
-    #                 name: $name,
-    #                 dimension: $dimension,
-    #                 vehicles: $vehicles,
-    #                 optimalValue: $optimalValue,
-    #                 capacity: $capacity,
-    #                 depotNode: $depotNode,
-    #                 nodeData: $nodeData,
-    #             }) {
-    #                 nModified
-    #                 n
-    #                 ok
-    #             }
-    #             }
-    #         """
-    #    )
-    #     variables = {'id':id,'name':p1.name,'dimension':p1.dimension,'vehicles':p1.vehicles,
-    #                 "optimalValue":p1.optimal_value,'capacity':p1.capacity,'depotNode':p1.depot_node
-    #                 ,"nodeData":nodeData}
 
-    #     client.execute(query, variables)
+            client.execute(query, variable_values=variables)
 
-        #Clustering
+            #Clustering
+            [clusters,vehicles] = cluster(p1.node_data, p1.vehicles)
+            for i in range(len(vehicles)):
+                pprint({"num_of_vehicles":vehicles[i], "data":clusters[i].to_json(orient="index")})
 
-        [clusters,vehicles] = cluster(p1.node_data,p1.vehicles)
-        for i in range(len(vehicles)):
-            pprint({"num_of_vehicles":vehicles[i], "data":clusters[i].to_json(orient="index")})
-
-        
-
-        return jsonify({
-            "clustered": clustered,
-            "check": check, 
-            "graphql": gql_result,
-            "route": truck_route, 
-        })
+            return jsonify({
+                "clustered": clustered,
+                "check": check, 
+                "graphql": gql_result,
+                "route": truck_route,
+            })
+    
+    if (request.method == "GET"):
+        # Just to check if endpoint is active
+        print('GET RAN')
+        return jsonify({"Instance identifier": check})
 
 # main driver function
 if __name__ == "__main__":

@@ -3,9 +3,6 @@ version: "3.8"
 services:
   solver:
     image: jonty99/vrp-backend-solver:latest
-    # build: 
-    #   args:
-    #     - FLASK_DEBUG=false
     restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
     stop_grace_period: 3s
     deploy:
@@ -16,8 +13,11 @@ services:
       replicas: 2
     ports:
       - "8000"
+    # https://docs.docker.com/engine/swarm/ingress/#bypass-the-routing-mesh
+    network_mode: "host"
     environment:
       - FLASK_DEBUG=false
+      - NODE_URL=http://node:3000
     
     # healthcheck:
     #   test: "${DOCKER_WEB_HEALTHCHECK_TEST:-curl localhost:8000/up}"

@@ -16,7 +16,7 @@ scalar = 100
 
 
 def parse_file(file):
-    with open("./upload/"+file, "r") as cvrp_file:
+    with file as cvrp_file:
         data = {}
         parser = re.compile(
             """NAME : (?P<name>.*)
@@ -172,7 +172,7 @@ def cluster(node_Data,num_of_v):
     d = {}
     no_clusters = 3
     
-    kmeans = KMeans(n_clusters = no_clusters, init ='k-means++')
+    kmeans = KMeans(n_clusters = no_clusters, init ='k-means++', random_state=3425, n_init=1)
     kmeans.fit(node_Data[node_Data.columns[1:3]]) # Compute k-means clustering.
     node_Data['cluster_label'] = kmeans.fit_predict(node_Data[node_Data.columns[1:3]])
     centers = kmeans.cluster_centers_ # Coordinates of cluster centers.

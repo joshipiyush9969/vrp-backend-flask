@@ -1,5 +1,6 @@
 import json
 import os
+import io
 from flask import Flask, flash, jsonify, request
 from flask_cors import CORS
 import logging
@@ -20,12 +21,12 @@ transport = RequestsHTTPTransport(
     verify=True,
     retries=3,
 )
-client = Client(transport=transport, serialize_variables=True, parse_results=True, fetch_schema_from_transport=True)
+client = Client(transport=transport, serialize_variables=True, fetch_schema_from_transport=True)
  
 @app.route("/", methods = ["GET", "POST"])
 def home():
     return jsonify({
-        "Instance identifier": check, 
+        "identifier": check, 
     })
 
 
@@ -49,7 +50,6 @@ def generate_route():
         *. 
     """
     if (request.method == "POST"):
-        print('POST RAN')
         clustered = request.args.get("clustered") == "1"
         gql_result, truck_route = None, None
         if clustered:
@@ -57,22 +57,20 @@ def generate_route():
             truck_route = find_route()
             return jsonify({
                 "clustered": clustered,
-                "check": check, 
-                "graphql": gql_result,
-                "route": truck_route, 
+                "identifier": check,
+                "route": truck_route,
             })
         else:
             print("Executing /route")
             data = request.get_json()
-            print(data)
             id = data.get('id')
             uint8arr = data.get('file').get('data') # [78,65,77,69,32,...]
-            print(id, uint8arr)
-            # TODO: UInt8Array to File that can be given as input to parse_file
-            p1 = parse_file("A-n36-k5.vrp")
-            nodeData = p1.node_data.to_json(orient="records")
-            print(p1.vehicles)
-            
+            # UInt8Array to file that can be given as input to parse_file
+            file = io.StringIO(bytes(uint8arr).decode('utf-8')) # in-memory file
+            p1 = parse_file(file)
+            file.close()
+            nodeData = json.loads(p1.node_data.to_json(orient="records"))
+
             #TO NODEJS
             query = gql(
                 """
@@ -113,24 +111,23 @@ def generate_route():
                 "nodeData": nodeData
             }
 
-            client.execute(query, variable_values=variables)
+            gql_result = client.execute(query, variables)
 
             #Clustering
             [clusters,vehicles] = cluster(p1.node_data, p1.vehicles)
             for i in range(len(vehicles)):
-                pprint({"num_of_vehicles":vehicles[i], "data":clusters[i].to_json(orient="index")})
+                # TODO: Send requests ka code likh bruhhh :(
+                print({"num_of_vehicles":vehicles[i], "data":clusters[i].to_json(orient="index")})
 
             return jsonify({
                 "clustered": clustered,
-                "check": check, 
-                "graphql": gql_result,
-                "route": truck_route,
+                "identifier": check,
+                "query_result": gql_result,
             })
     
     if (request.method == "GET"):
         # Just to check if endpoint is active
-        print('GET RAN')
-        return jsonify({"Instance identifier": check})
+        return jsonify({"identifier": check})
 
 # main driver function
 if __name__ == "__main__":

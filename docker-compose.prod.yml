@@ -14,7 +14,7 @@ services:
     ports:
       - "8000"
     # https://docs.docker.com/engine/swarm/ingress/#bypass-the-routing-mesh
-    network_mode: "host"
+    # network_mode: "host"
     environment:
       - FLASK_DEBUG=false
       - NODE_URL=http://node:3000

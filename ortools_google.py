@@ -19,7 +19,7 @@ def print_solution(data, manager, routing, solution):
     
     #vehicle_route_distance = [] Distance coming zero, still have to figure out, whats the problem
     """Prints solution on console."""
-    print(f"Objective: {solution.ObjectiveValue() // scalar}")
+    #print(f"Objective: {solution.ObjectiveValue() // scalar}")
     total_distance = 0
     total_load = 0
     for vehicle_id in range(data["num_vehicles"]):
@@ -43,11 +43,11 @@ def print_solution(data, manager, routing, solution):
         plan_output += "Load of the route: {}\n".format(route_load)
         vehicle_routes.append(current_route)
         #vehicle_route_distance.append(route_distance)
-        print(plan_output)
+        #print(plan_output)
         total_distance += route_distance
         total_load += route_load
-    print("Total distance of all routes: {}m".format(total_distance))
-    print("Total load of all routes: {}".format(total_load))
+    #print("Total distance of all routes: {}m".format(total_distance))
+    #print("Total load of all routes: {}".format(total_load))
     return vehicle_routes
 
 

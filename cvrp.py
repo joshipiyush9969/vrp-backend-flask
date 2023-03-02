@@ -14,12 +14,10 @@ from sklearn.cluster import KMeans
 # https://developers.google.com/optimization/routing/tsp#scaling
 scalar = 100
 
-
-def parse_file(file):
-    with file as cvrp_file:
-        data = {}
-        parser = re.compile(
-            """NAME : (?P<name>.*)
+def parse_file(file_text):
+    data = {}
+    parser = re.compile(
+        """NAME : (?P<name>.*)
 COMMENT : (?P<comment>.*)
 TYPE : (?P<type>.*)
 DIMENSION : (?P<dimension>.*)
@@ -33,56 +31,55 @@ DEPOT_SECTION\s*
 (?P<depot_node>.*)\s*
 """,re.MULTILINE,)
 
-        problemInfo = {}
-        text = cvrp_file.read()
-        matches = parser.match(text)
-        if matches:
-            # trim parsed values
-            data = matches.groupdict()
-            for key, val in data.items():
-                data[key] = val.strip()
+    problemInfo = {}
+    matches = parser.match(file_text)
+    if matches:
+        # trim parsed values
+        data = matches.groupdict()
+        for key, val in data.items():
+            data[key] = val.strip()
 
-            other = re.match(
-                ".*No of trucks: (?P<vehicles>\d+).*Optimal value: (?P<optimal_value>\d+).*",
-                data["comment"],
+        other = re.match(
+            ".*No of trucks: (?P<vehicles>\d+).*Optimal value: (?P<optimal_value>\d+).*",
+            data["comment"],
+        )
+        data.update(other.groupdict()) if other else data.update(
+            {"vehicles": None, "optimal_value": None}
+        )
+        data["node_coord_section"] = [
+            list(map(int, x))
+            for x in map(
+                lambda x: x.split(" "), data["node_coord_section"].split("\n ")
             )
-            data.update(other.groupdict()) if other else data.update(
-                {"vehicles": None, "optimal_value": None}
+        ]
+        data["demand_section"] = [
+            list(map(int, x))[1:]
+            for x in map(
+                lambda x: x.split(" "), data["demand_section"].split(" \n")
             )
-            data["node_coord_section"] = [
-                list(map(int, x))
-                for x in map(
-                    lambda x: x.split(" "), data["node_coord_section"].split("\n ")
-                )
-            ]
-            data["demand_section"] = [
-                list(map(int, x))[1:]
-                for x in map(
-                    lambda x: x.split(" "), data["demand_section"].split(" \n")
-                )
-            ]
-            data["priority"] = np.zeros(
-                (int(data["dimension"]), 1), dtype=int
-            )  # sets all priority col to zero
+        ]
+        data["priority"] = np.zeros(
+            (int(data["dimension"]), 1), dtype=int
+        )  # sets all priority col to zero
 
-            combined_cols = np.c_[
-                data["node_coord_section"], data["demand_section"], data["priority"]
-            ]
-            data["node_data"] = pd.DataFrame(
-                columns=["node", "latitude", "longitude", "demand", "priority"],
-                data=combined_cols,
-            )
-            # currently capacity is a constant value; change to array for variable truck capacity
-            for key in [
-                "name",
-                "dimension",
-                "vehicles",
-                "optimal_value",
-                "capacity",
-                "depot_node",
-                "node_data",
-            ]:
-                problemInfo[key] = data[key]
+        combined_cols = np.c_[
+            data["node_coord_section"], data["demand_section"], data["priority"]
+        ]
+        data["node_data"] = pd.DataFrame(
+            columns=["node", "latitude", "longitude", "demand", "priority"],
+            data=combined_cols,
+        )
+        # currently capacity is a constant value; change to array for variable truck capacity
+        for key in [
+            "name",
+            "dimension",
+            "vehicles",
+            "optimal_value",
+            "capacity",
+            "depot_node",
+            "node_data",
+        ]:
+            problemInfo[key] = data[key]
 
     class ProblemInfo:
         def __init__(
@@ -130,12 +127,12 @@ def distance(lat1, lat2, lon1, lon2):
     return c * r
 
 
-def find_route(node_Data):
+def find_route(node_Data, vehicle_capacity, no_of_vehicles):
 
     matrix_d = []
     demand = []
-    vehicle_capacity = [100, 100, 100, 100, 100] 
-    no_of_vehicles = 5  
+    # vehicle_capacity = [100, 100, 100, 100, 100] 
+    # no_of_vehicles = 5  
 
     for lat1, lon1 in zip(node_Data["latitude"], node_Data["longitude"]):
         node = []
@@ -143,7 +140,7 @@ def find_route(node_Data):
             node.append(int(distance(lat1, lat2, lon1, lon2) * scalar))
         matrix_d.append(node)
 
-    # pprint(matrix_d)
+    # p#print(matrix_d)
     for d in node_Data["demand"]:
         demand.append(d)
 
@@ -154,9 +151,9 @@ def find_route(node_Data):
     #     vehicle_capacity = capacity
 
     # pprint(matrix_d)
-    print("demand =>", demand)
-    print("no.of vehicles =>", no_of_vehicles)
-    print("vehicle capacity =>", vehicle_capacity)
+    #print("demand =>", demand)
+    #print("no.of vehicles =>", no_of_vehicles)
+    #print("vehicle capacity =>", vehicle_capacity)
 
     # or tools
     data = create_data_model(matrix_d, demand, vehicle_capacity, no_of_vehicles)
@@ -182,7 +179,7 @@ def cluster(node_Data,num_of_v):
 
     for i in clusters:
         total_demand = node_Data.loc[node_Data['cluster_label'] == i, 'demand'].sum()
-        print(total_demand)
+        #print(total_demand)
         vehicles.append(math.ceil(total_demand/100))
         v_sum += math.ceil(total_demand/100)
 

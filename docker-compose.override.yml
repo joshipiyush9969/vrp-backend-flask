@@ -11,8 +11,24 @@ services:
     environment:
       - FLASK_APP=app
       - NODE_URL=http://node:3000
+      - SOLVER_URL=http://rproxy:4000
     volumes:
       - ./:/app
     # https://docs.docker.com/compose/environment-variables/
     # env_file:
     #   - ".env"
+
+  rproxy:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - backend_net
+    depends_on:
+      - solver
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    ports:
+      - "4000:4000"

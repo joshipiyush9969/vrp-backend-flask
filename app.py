@@ -18,10 +18,8 @@ CORS(app)
 check = randint(0, 1000)
 
 # Graphql Client setup
-NODE_URL = "http://ip172-19-0-76-cg0fjpgsf2q000c86pg0-3000.direct.labs.play-with-docker.com"
 transport = RequestsHTTPTransport(
-    # url=f'{os.environ.get("NODE_URL")}/graphql',
-    url=f'{NODE_URL}/graphql',
+    url=f'{os.environ.get("NODE_URL")}/graphql',
     verify=True,
     retries=3,
 )
@@ -60,18 +58,21 @@ def generate_route():
             req_data = request.get_json()
             print("Executing /route?clustered=1")
             node_data = pd.read_json(req_data["data"])
-            truck_route = find_route(node_data, req_data["capacity"], req_data["num_of_vehicles"])
-            # print(req_data)
+            solution = find_route(node_data, req_data["capacity"], req_data["num_of_vehicles"])
+            truck_route = solution[0]
+            route_distances = solution[1]
             print(truck_route)
-            for route in truck_route:
+            for i in range(len(truck_route)):
                 query = gql(
                 """
                     mutation updateProblemInfoSolution(
                             $id: ID!,
-                            $tour: [Int]
+                            $tour: [Int],
+                            $tourDistance: Int
                         ) {
                         updateProblemInfoSolution(id: $id, input: {
                             tour: $tour,
+                            tourDistance: $tourDistance
                         }) {
                             nModified
                             n
@@ -82,7 +83,8 @@ def generate_route():
                 )
                 variables = {
                     "id": req_data['id'],
-                    "tour": route,
+                    "tour": truck_route[i],
+                    "tourDistance": route_distances[i]
                 }
 
                 gql_result = client.execute(query, variables)
@@ -91,7 +93,7 @@ def generate_route():
             return jsonify({
                 "clustered": clustered,
                 "identifier": check,
-                # "route": truck_route,
+                "route": truck_route
             })
         else:
             print("Executing /route")

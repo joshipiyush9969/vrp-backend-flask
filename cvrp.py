@@ -162,7 +162,7 @@ def find_route(node_Data, vehicle_capacity, no_of_vehicles):
 
 
 
-def cluster(node_Data,num_of_v):
+def cluster(node_Data, num_of_v, capacity):
     v_sum = 0
     num_of_v = int(num_of_v)
     vehicles = []
@@ -180,8 +180,8 @@ def cluster(node_Data,num_of_v):
     for i in clusters:
         total_demand = node_Data.loc[node_Data['cluster_label'] == i, 'demand'].sum()
         #print(total_demand)
-        vehicles.append(math.ceil(total_demand/100))
-        v_sum += math.ceil(total_demand/100)
+        vehicles.append(math.ceil(total_demand/capacity))
+        v_sum += math.ceil(total_demand/capacity)
 
     if(v_sum>num_of_v):
         num_of_v += 1   

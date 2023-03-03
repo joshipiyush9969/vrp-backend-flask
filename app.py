@@ -58,11 +58,18 @@ def generate_route():
             req_data = request.get_json()
             print("Executing /route?clustered=1")
             node_data = pd.read_json(req_data["data"])
+            cluster_label = node_data["cluster_label"][0] # add this in below query
+            depot = pd.read_json(req_data["depot"])
+            node_data = pd.concat([depot, node_data]).reset_index(drop=True)
             solution = find_route(node_data, req_data["capacity"], req_data["num_of_vehicles"])
-            truck_route = solution[0]
             route_distances = solution[1]
-            print(truck_route)
-            for i in range(len(truck_route)):
+            truck_routes = []
+            for sol in solution[0]:
+                route = [node_data['node'][i] for i in sol]
+                truck_routes.append(route)
+            print(truck_routes)
+            for i in range(len(truck_routes)):
+                # Mandar add cluster label in query
                 query = gql(
                 """
                     mutation updateProblemInfoSolution(
@@ -83,7 +90,7 @@ def generate_route():
                 )
                 variables = {
                     "id": req_data['id'],
-                    "tour": truck_route[i],
+                    "tour": truck_routes[i],
                     "tourDistance": route_distances[i]
                 }
 
@@ -153,7 +160,9 @@ def generate_route():
             gql_result = client.execute(query, variables)
 
             #Clustering
-            [clusters,vehicles] = cluster(p1.node_data, p1.vehicles)
+            depot = p1.node_data.loc[p1.node_data['node'] == p1.depot_node]
+            node_data = p1.node_data.drop(p1.node_data[p1.node_data['node'] == p1.depot_node].index)
+            [clusters,vehicles] = cluster(node_data, p1.vehicles, p1.capacity)
             url = "http://localhost:5000/route?clustered=1"
             # url = "http://ip172-18-0-150-cfv3ctv91rrg00cd1ck0-4000.direct.labs.play-with-docker.com/"
             headers = {'content-type': 'application/json'}
@@ -163,6 +172,7 @@ def generate_route():
                     "id": id, 
                     "capacity": [p1.capacity for x in range(vehicles[i])], 
                     "num_of_vehicles": vehicles[i],
+                    "depot": depot.to_json(orient="records"),
                     "data":clusters[i].to_json(orient="records")
                 }
                 response = requests.post(url, json=payload, headers=headers)

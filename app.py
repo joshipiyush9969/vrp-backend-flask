@@ -2,7 +2,10 @@ import json
 import os
 import io
 import requests
+import traceback
 import pandas as pd
+import datetime
+from datetime import timezone
 from flask import Flask, flash, jsonify, request
 from flask_cors import CORS
 import logging
@@ -61,13 +64,15 @@ def generate_route():
             cluster_label = node_data["cluster_label"][0] # add this in below query
             depot = pd.read_json(req_data["depot"])
             node_data = pd.concat([depot, node_data]).reset_index(drop=True)
+            print(f"-------Solution Route Cluster #{cluster_label} ({req_data['id']}) start time-------", get_timestamp())
             solution = find_route(node_data, req_data["capacity"], req_data["num_of_vehicles"])
+            print(f"-------Solution Route Cluster #{cluster_label} ({req_data['id']}) end time-------", get_timestamp())
             route_distances = solution[1]
             truck_routes = []
             for sol in solution[0]:
                 route = [node_data['node'][i] for i in sol]
                 truck_routes.append(route)
-            print(truck_routes)
+            # print(truck_routes)
             for i in range(len(truck_routes)):
                 query = gql(
                 """
@@ -94,7 +99,7 @@ def generate_route():
                 }
 
                 gql_result = client.execute(query, variables)
-                print("gql -> ", gql_result)
+                # print("gql -> ", gql_result)
             
             return jsonify({
                 "clustered": clustered,
@@ -114,7 +119,8 @@ def generate_route():
             contents = file.getvalue()
             try:
                 p1 = parse_file(contents)
-            except:
+            except Exception:
+                traceback.print_exc()
                 return jsonify({"message": "Unable to parse file."}), 400
             
             file.close()
@@ -162,10 +168,13 @@ def generate_route():
 
             gql_result = client.execute(query, variables)
 
+
             # Clustering
             depot = p1.node_data.loc[p1.node_data['node'] == p1.depot_node]
             node_data = p1.node_data.drop(p1.node_data[p1.node_data['node'] == p1.depot_node].index)
+            print(f'-------Problem ({id}) clustering start time-------', get_timestamp())
             [clusters,vehicles] = cluster(node_data, p1.vehicles, p1.capacity)
+            print(f'-------Problem ({id}) clustering end time-------', get_timestamp())
             url = f"{os.environ.get('SOLVER_URL')}/route?clustered=1"
             # url = "http://localhost:5000/route?clustered=1"
             # url = "http://ip172-18-0-150-cfv3ctv91rrg00cd1ck0-4000.direct.labs.play-with-docker.com/"
@@ -181,7 +190,7 @@ def generate_route():
                 try:
                     # Fire and forget (Hacky)
                     requests.post(url, json=payload, headers=headers, timeout=1)
-                except:
+                except requests.exceptions.ReadTimeout:
                     pass
                 # print("res -> ", response)
                 # print({"num_of_vehicles":vehicles[i], "data":clusters[i].to_json(orient="records")})
@@ -195,6 +204,11 @@ def generate_route():
     if (request.method == "GET"):
         # Just to check if endpoint is active
         return jsonify({"identifier": check})
+
+def get_timestamp():
+    dt = datetime.datetime.now(timezone.utc)
+    utc_time = dt.replace(tzinfo=timezone.utc)
+    return utc_time.timestamp()
 
 # main driver function
 if __name__ == "__main__":

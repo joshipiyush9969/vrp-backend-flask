@@ -24,7 +24,7 @@ DIMENSION : (?P<dimension>.*)
 EDGE_WEIGHT_TYPE : (?P<edge_weight_type>.*)
 CAPACITY : (?P<capacity>.*)
 NODE_COORD_SECTION\s*
-(?P<node_coord_section>[\d|\s]+)
+(?P<node_coord_section>[\d|\.|\-|\s]+)
 DEMAND_SECTION\s*
 (?P<demand_section>[\d|\s]+)
 DEPOT_SECTION\s*
@@ -40,22 +40,24 @@ DEPOT_SECTION\s*
             data[key] = val.strip()
 
         other = re.match(
-            ".*No of trucks: (?P<vehicles>\d+).*Optimal value: (?P<optimal_value>\d+).*",
+            ".*No of trucks: (?P<vehicles>\d+)(, Optimal value: (?P<optimal_value>\d+))?.*",
             data["comment"],
         )
-        data.update(other.groupdict()) if other else data.update(
-            {"vehicles": None, "optimal_value": None}
+        data.update({
+                "vehicles": other.groupdict().get("vehicles", None), 
+                "optimal_value": other.groupdict().get("optimal_value", None)
+            }
         )
         data["node_coord_section"] = [
-            list(map(int, x))
+            list(map(lambda y: float(y.strip()), x))
             for x in map(
-                lambda x: x.split(" "), data["node_coord_section"].split("\n ")
+                lambda x: x.strip().split(" ", 2), data["node_coord_section"].split("\n")
             )
         ]
         data["demand_section"] = [
-            list(map(int, x))[1:]
+            list(map(lambda y: int(y.strip()), x))[1:]
             for x in map(
-                lambda x: x.split(" "), data["demand_section"].split(" \n")
+                lambda x: x.strip().split(" ", 1), data["demand_section"].split("\n")
             )
         ]
         data["priority"] = np.zeros(
@@ -69,6 +71,7 @@ DEPOT_SECTION\s*
             columns=["node", "latitude", "longitude", "demand", "priority"],
             data=combined_cols,
         )
+        # print(data)
         # currently capacity is a constant value; change to array for variable truck capacity
         for key in [
             "name",
@@ -95,7 +98,7 @@ DEPOT_SECTION\s*
             self.name = name
             self.dimension = int(dimension)
             self.vehicles = int(vehicles)
-            self.optimal_value = int(optimal_value)
+            self.optimal_value = int(optimal_value) if optimal_value else None
             self.capacity = int(capacity)
             self.depot_node = int(depot_node)
             self.node_data = node_data
@@ -167,7 +170,7 @@ def cluster(node_Data, num_of_v, capacity):
     num_of_v = int(num_of_v)
     vehicles = []
     d = {}
-    no_clusters = 3
+    no_clusters = math.ceil(len(node_Data['node']) / 100)
     
     kmeans = KMeans(n_clusters = no_clusters, init ='k-means++', random_state=3425, n_init=1)
     kmeans.fit(node_Data[node_Data.columns[1:3]]) # Compute k-means clustering.

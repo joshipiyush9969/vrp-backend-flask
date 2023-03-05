@@ -44,4 +44,4 @@ ENTRYPOINT ["/app/bin/docker-entrypoint"]
 EXPOSE 8000
 
 # https://stackoverflow.com/a/1621487/17825257
-CMD ["gunicorn", "-b", "0.0.0.0:8000", "--workers=1", "--log-level=debug", "app:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "--workers=4", "--log-level=debug", "app:app"]

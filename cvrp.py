@@ -9,6 +9,7 @@ from math import radians, cos, sin, asin, sqrt
 from pprint import pprint
 import random
 from sklearn.cluster import KMeans
+from k_means_constrained import KMeansConstrained
 
 # Default scaling factor for distance matrix is 100
 # https://developers.google.com/optimization/routing/tsp#scaling
@@ -120,8 +121,7 @@ def distance(lat1, lat2, lon1, lon2):
     dlon = lon2 - lon1
     dlat = lat2 - lat1
     a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-
-    c = 2 * asin(sqrt(a))
+    c = 2 * asin(sqrt(abs(a)))
 
     # Radius of earth in kilometers. Use 3956 for miles
     r = 6371
@@ -166,13 +166,15 @@ def find_route(node_Data, vehicle_capacity, no_of_vehicles):
 
 
 def cluster(node_Data, num_of_v, capacity):
-    v_sum = 0
-    num_of_v = int(num_of_v)
     vehicles = []
     d = {}
-    no_clusters = math.ceil(len(node_Data['node']) / 100)
+    no_clusters = math.ceil(len(node_Data['node']) / 1000)
+    min_s = 900
     
-    kmeans = KMeans(n_clusters = no_clusters, init ='k-means++', random_state=3425, n_init=1)
+    if len(node_Data['node']) <= 2*min_s:
+        kmeans = KMeans(n_clusters=no_clusters, init ='k-means++', random_state=3425, n_init=1)
+    else:
+        kmeans = KMeansConstrained(n_clusters=no_clusters, size_min=min_s, size_max=2*min_s, init='k-means++', random_state=3425, n_init=1)
     kmeans.fit(node_Data[node_Data.columns[1:3]]) # Compute k-means clustering.
     node_Data['cluster_label'] = kmeans.fit_predict(node_Data[node_Data.columns[1:3]])
     centers = kmeans.cluster_centers_ # Coordinates of cluster centers.
@@ -182,13 +184,13 @@ def cluster(node_Data, num_of_v, capacity):
 
     for i in clusters:
         total_demand = node_Data.loc[node_Data['cluster_label'] == i, 'demand'].sum()
-        #print(total_demand)
         vehicles.append(math.ceil(total_demand/capacity))
-        v_sum += math.ceil(total_demand/capacity)
+        # print('Total Demand', total_demand, vehicles[-1], capacity)
 
-    if(v_sum>num_of_v):
-        num_of_v += 1   
+    print('Used trucks:', sum(vehicles), ', Available trucks:', num_of_v)
+    # if(sum(vehicles) > num_of_v):
+    #     num_of_v += 1
     for i in clusters:
         d[i] = node_Data[node_Data['cluster_label'] == i]
 
-    return [d,vehicles]
+    return [d, vehicles]

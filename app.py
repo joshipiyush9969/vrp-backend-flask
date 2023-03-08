@@ -43,8 +43,8 @@ def generate_route():
         clustered = request.args.get("clustered") == "1"
         gql_result = None
         if clustered:
-            req_data = request.get_json()
             print("Executing /route?clustered=1")
+            req_data = request.get_json()
             node_data = pd.read_json(req_data["data"])
             cluster_label = node_data["cluster_label"][0]
             depot = pd.read_json(req_data["depot"])
@@ -52,7 +52,7 @@ def generate_route():
             
             # find route using ortools
             print(f"-------Solution Route Cluster #{cluster_label} ({req_data['id']}) start time-------", get_timestamp())
-            solution = find_route(node_data, req_data["capacity"], req_data["num_of_vehicles"])
+            solution = find_route(node_data, req_data["capacity"], req_data["num_of_vehicles"], req_data["timeout"])
             print(f"-------Solution Route Cluster #{cluster_label} ({req_data['id']}) end time-------", get_timestamp())
             
             if solution:
@@ -89,20 +89,20 @@ def generate_route():
                     }
                     gql_result = client.execute(query, variables)
                     # print("gql -> ", gql_result)
+                return jsonify({
+                    "identifier": check,
+                    "clustered": clustered,
+                    "gql_result": gql_result,
+                    "solution": True,
+                    "timeout": req_data["timeout"]
+                })
             else:
                 return jsonify({
-                    "clustered": clustered,
                     "identifier": check,
-                    "gql_result": gql_result,
-                    "solution": False
+                    "clustered": clustered,
+                    "solution": False,
+                    "timeout": req_data["timeout"]
                 })
-            
-            return jsonify({
-                "clustered": clustered,
-                "identifier": check,
-                "gql_result": gql_result,
-                "solution": True
-            })
         else:
             print("Executing /route")
             data = request.get_json()
@@ -187,26 +187,33 @@ def distribute_task(**kwargs):
     depot = p1.node_data.loc[p1.node_data['node'] == p1.depot_node]
     node_data = p1.node_data.drop(p1.node_data[p1.node_data['node'] == p1.depot_node].index)
     print(f'-------Problem ({id}) clustering start time-------', get_timestamp())
-    [clusters,vehicles] = cluster(node_data, p1.vehicles, p1.capacity)
+    [clusters, vehicles] = cluster(node_data, p1.vehicles, p1.capacity)
     print(f'-------Problem ({id}) clustering end time-------', get_timestamp(), clusters)
 
+    payload_queue = [{
+        "id": id,
+        "capacity": [p1.capacity for x in range(vehicles[i])], 
+        "num_of_vehicles": vehicles[i],
+        "depot": depot.to_json(orient="records"),
+        "data":clusters[i].to_json(orient="records"),
+        "timeout": 10,
+    } for i in range(len(vehicles))]
+        
     url = f"{os.environ.get('SOLVER_URL')}/route?clustered=1"
     headers = {'content-type': 'application/json'}
-    for i in range(len(vehicles)):
-        payload = {
-            "id": id,
-            "capacity": [p1.capacity for x in range(vehicles[i])], 
-            "num_of_vehicles": vehicles[i],
-            "depot": depot.to_json(orient="records"),
-            "data":clusters[i].to_json(orient="records")
-        }
+    while payload_queue:
         try:
+            payload = payload_queue.pop(0)
             # Fire and forget (Hacky)
-            requests.post(url, json=payload, headers=headers)
+            res = requests.post(url, json=payload, headers=headers)
+            data = res.json()
+            if not data["solution"] and data["timeout"] < 30:
+                payload.update({
+                    "timeout": payload["timeout"] + 40
+                })
+                payload_queue.append(payload)
         except requests.exceptions.ReadTimeout:
             pass
-        # print("res -> ", response)
-        # print({"num_of_vehicles":vehicles[i], "data":clusters[i].to_json(orient="records")})
 
 def get_timestamp():
     dt = datetime.datetime.now(timezone.utc)

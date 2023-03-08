@@ -130,21 +130,21 @@ def distance(lat1, lat2, lon1, lon2):
     return c * r
 
 
-def find_route(node_Data, vehicle_capacity, no_of_vehicles):
+def find_route(node_data, vehicle_capacity, no_of_vehicles, timeout):
 
     matrix_d = []
     demand = []
     # vehicle_capacity = [100, 100, 100, 100, 100] 
     # no_of_vehicles = 5  
 
-    for lat1, lon1 in zip(node_Data["latitude"], node_Data["longitude"]):
+    for lat1, lon1 in zip(node_data["latitude"], node_data["longitude"]):
         node = []
-        for lat2, lon2 in zip(node_Data["latitude"], node_Data["longitude"]):
+        for lat2, lon2 in zip(node_data["latitude"], node_data["longitude"]):
             node.append(int(distance(lat1, lat2, lon1, lon2) * scalar))
         matrix_d.append(node)
 
     # p#print(matrix_d)
-    for d in node_Data["demand"]:
+    for d in node_data["demand"]:
         demand.append(d)
 
     # while sum(vehicle_capacity) < sum(demand):
@@ -160,30 +160,30 @@ def find_route(node_Data, vehicle_capacity, no_of_vehicles):
 
     # or tools
     data = create_data_model(matrix_d, demand, vehicle_capacity, no_of_vehicles)
-    route = generate_routes(data)
+    route = generate_routes(data, timeout)
     return route
 
 
 
-def cluster(node_Data, num_of_v, capacity):
+def cluster(node_data, num_of_v, capacity):
     vehicles = []
     d = {}
-    no_clusters = math.ceil(len(node_Data['node']) / 1000)
+    no_clusters = math.ceil(len(node_data['node']) / 1000)
     min_s = 900
     
-    if len(node_Data['node']) <= 2*min_s:
+    if len(node_data['node']) <= 2*min_s:
         kmeans = KMeans(n_clusters=no_clusters, init ='k-means++', random_state=3425, n_init=1)
     else:
         kmeans = KMeansConstrained(n_clusters=no_clusters, size_min=min_s, size_max=2*min_s, init='k-means++', random_state=3425, n_init=1)
-    kmeans.fit(node_Data[node_Data.columns[1:3]]) # Compute k-means clustering.
-    node_Data['cluster_label'] = kmeans.fit_predict(node_Data[node_Data.columns[1:3]])
+    kmeans.fit(node_data[node_data.columns[1:3]]) # Compute k-means clustering.
+    node_data['cluster_label'] = kmeans.fit_predict(node_data[node_data.columns[1:3]])
     centers = kmeans.cluster_centers_ # Coordinates of cluster centers.
-    labels = kmeans.predict(node_Data[node_Data.columns[1:3]]) # Labels of each point
-    node_Data.head(10)
-    clusters = list(set(node_Data['cluster_label'].tolist()))
+    labels = kmeans.predict(node_data[node_data.columns[1:3]]) # Labels of each point
+    node_data.head(10)
+    clusters = list(set(node_data['cluster_label'].tolist()))
 
     for i in clusters:
-        total_demand = node_Data.loc[node_Data['cluster_label'] == i, 'demand'].sum()
+        total_demand = node_data.loc[node_data['cluster_label'] == i, 'demand'].sum()
         vehicles.append(math.ceil(total_demand/capacity))
         # print('Total Demand', total_demand, vehicles[-1], capacity)
 
@@ -191,6 +191,6 @@ def cluster(node_Data, num_of_v, capacity):
     # if(sum(vehicles) > num_of_v):
     #     num_of_v += 1
     for i in clusters:
-        d[i] = node_Data[node_Data['cluster_label'] == i]
+        d[i] = node_data[node_data['cluster_label'] == i]
 
     return [d, vehicles]

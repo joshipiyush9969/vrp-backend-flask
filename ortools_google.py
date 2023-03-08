@@ -56,7 +56,7 @@ def print_solution(data, manager, routing, solution):
 
 
 
-def generate_routes(data):
+def generate_routes(data, timeout):
     # Instantiate the data problem.
 
     # Create the routing index manager.
@@ -106,7 +106,7 @@ def generate_routes(data):
         routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC)
     search_parameters.local_search_metaheuristic = (
         routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
-    search_parameters.time_limit.FromSeconds(5)
+    search_parameters.time_limit.FromSeconds(timeout)
 
     # Solve the problem.
     # solution = routing.Solve()

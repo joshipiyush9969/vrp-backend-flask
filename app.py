@@ -52,7 +52,7 @@ def generate_route():
             
             # find route using ortools
             print(f"-------Solution Route Cluster #{cluster_label} ({req_data['id']}) start time-------", get_timestamp())
-            solution = find_route(node_data, req_data["capacity"], req_data["num_of_vehicles"], req_data["timeout"])
+            solution = find_route(node_data, req_data["capacities"], req_data["num_of_vehicles"], req_data["timeout"])
             print(f"-------Solution Route Cluster #{cluster_label} ({req_data['id']}) end time-------", get_timestamp())
             
             if solution:
@@ -192,7 +192,7 @@ def distribute_task(**kwargs):
 
     payload_queue = [{
         "id": id,
-        "capacity": [p1.capacity for x in range(vehicles[i])], 
+        "capacities": [p1.capacity for x in range(vehicles[i])], 
         "num_of_vehicles": vehicles[i],
         "depot": depot.to_json(orient="records"),
         "data":clusters[i].to_json(orient="records"),

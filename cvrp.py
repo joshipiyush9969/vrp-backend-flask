@@ -11,6 +11,8 @@ import random
 from sklearn.cluster import KMeans
 from k_means_constrained import KMeansConstrained
 
+np.random.seed(3425)
+
 # Default scaling factor for distance matrix is 100
 # https://developers.google.com/optimization/routing/tsp#scaling
 scalar = 100
@@ -61,9 +63,15 @@ DEPOT_SECTION\s*
                 lambda x: x.strip().split(" ", 1), data["demand_section"].split("\n")
             )
         ]
-        data["priority"] = np.zeros(
-            (int(data["dimension"]), 1), dtype=int
-        )  # sets all priority col to zero
+        # sets all priority col to zero
+        # data["priority"] = np.zeros(
+        #     (int(data["dimension"]), 1), dtype=int
+        # )
+        data["priority"] = [0, *np.random.choice(
+            a=[0, 1, 2], 
+            size=(int(data["dimension"])-1),
+            p=[0.93, 0.06, 0.01],
+        )]
 
         combined_cols = np.c_[
             data["node_coord_section"], data["demand_section"], data["priority"]
@@ -130,11 +138,12 @@ def distance(lat1, lat2, lon1, lon2):
     return c * r
 
 
-def find_route(node_data, vehicle_capacity, no_of_vehicles, timeout):
+def find_route(node_data, vehicle_capacities, no_of_vehicles, timeout):
 
     matrix_d = []
     demand = []
-    # vehicle_capacity = [100, 100, 100, 100, 100] 
+    priority = []
+    # vehicle_capacities = [100, 100, 100, 100, 100] 
     # no_of_vehicles = 5  
 
     for lat1, lon1 in zip(node_data["latitude"], node_data["longitude"]):
@@ -144,22 +153,22 @@ def find_route(node_data, vehicle_capacity, no_of_vehicles, timeout):
         matrix_d.append(node)
 
     # p#print(matrix_d)
-    for d in node_data["demand"]:
-        demand.append(d)
+    demand = node_data["demand"].copy()
+    priority = node_data["priority"].copy()
 
-    # while sum(vehicle_capacity) < sum(demand):
+    # while sum(vehicle_capacities) < sum(demand):
     #     capacity = []
     #     for i in range(no_of_vehicles):
     #         capacity.append(random.randint(max(demand), 100))
-    #     vehicle_capacity = capacity
+    #     vehicle_capacities = capacity
 
-    # pprint(matrix_d)
+    #pprint(matrix_d)
     #print("demand =>", demand)
     #print("no.of vehicles =>", no_of_vehicles)
-    #print("vehicle capacity =>", vehicle_capacity)
+    #print("vehicle capacity =>", vehicle_capacities)
 
     # or tools
-    data = create_data_model(matrix_d, demand, vehicle_capacity, no_of_vehicles)
+    data = create_data_model(matrix_d, demand, vehicle_capacities, no_of_vehicles)
     route = generate_routes(data, timeout)
     return route
 

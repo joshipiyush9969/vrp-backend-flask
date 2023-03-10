@@ -67,8 +67,8 @@ DEPOT_SECTION\s*
         # data["priority"] = np.zeros(
         #     (int(data["dimension"]), 1), dtype=int
         # )
-        data["priority"] = [0, *np.random.choice(
-            a=[0, 1, 2], 
+        data["priority"] = [2, *np.random.choice(
+            a=[2, 1, 0], 
             size=(int(data["dimension"])-1),
             p=[0.93, 0.06, 0.01],
         )]
@@ -154,7 +154,7 @@ def find_route(node_data, vehicle_capacities, no_of_vehicles, timeout):
 
     # p#print(matrix_d)
     demand = node_data["demand"].copy()
-    priority = node_data["priority"].copy()
+    priorities = node_data["priority"].copy()
 
     # while sum(vehicle_capacities) < sum(demand):
     #     capacity = []
@@ -168,7 +168,7 @@ def find_route(node_data, vehicle_capacities, no_of_vehicles, timeout):
     #print("vehicle capacity =>", vehicle_capacities)
 
     # or tools
-    data = create_data_model(matrix_d, demand, vehicle_capacities, no_of_vehicles)
+    data = create_data_model(matrix_d, demand, vehicle_capacities, no_of_vehicles, priorities)
     route = generate_routes(data, timeout)
     return route
 

@@ -149,7 +149,7 @@ def parse_file(file):
             self.name = name
             self.dimension = int(dimension)
             self.vehicles = int(vehicles)
-            self.optimal_value = int(optimal_value) if optimal_value else None
+            self.optimal_value = int(optimal_value) if not pd.isna(optimal_value) else None
             self.capacity = int(capacity)
             self.depot_node = int(depot_node)
             self.node_data = node_data

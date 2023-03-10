@@ -68,8 +68,8 @@ scalar = 100
 #         # data["priority"] = np.zeros(
 #         #     (int(data["dimension"]), 1), dtype=int
 #         # )
-#         data["priority"] = [0, *np.random.choice(
-#             a=[0, 1, 2], 
+#         data["priority"] = [2, *np.random.choice(
+#             a=[2, 1, 0], 
 #             size=(int(data["dimension"])-1),
 #             p=[0.93, 0.06, 0.01],
 #         )]
@@ -115,40 +115,9 @@ scalar = 100
 
 #     p1 = ProblemInfo(**problemInfo)
 
-        other = re.match(
-            ".*No of trucks: (?P<vehicles>\d+)(, Optimal value: (?P<optimal_value>\d+))?.*",
-            data["comment"],
-        )
-        data.update({
-                "vehicles": other.groupdict().get("vehicles", None), 
-                "optimal_value": other.groupdict().get("optimal_value", None)
-            }
-        )
-        data["node_coord_section"] = [
-            list(map(lambda y: float(y.strip()), x))
-            for x in map(
-                lambda x: x.strip().split(" ", 2), data["node_coord_section"].split("\n")
-            )
-        ]
-        data["demand_section"] = [
-            list(map(lambda y: int(y.strip()), x))[1:]
-            for x in map(
-                lambda x: x.strip().split(" ", 1), data["demand_section"].split("\n")
-            )
-        ]
-        # sets all priority col to zero
-        # data["priority"] = np.zeros(
-        #     (int(data["dimension"]), 1), dtype=int
-        # )
-        data["priority"] = [2, *np.random.choice(
-            a=[2, 1, 0], 
-            size=(int(data["dimension"])-1),
-            p=[0.93, 0.06, 0.01],
-        )]
-
 def parse_file(file):
     problemInfo={}
-    df = pd.read_excel(file);
+    df = pd.read_excel(file)
     capacity = df['capacity'][0]
     vehicles = df['no_of_trucks'][0]
     dimension = df['dimension'][0]
@@ -159,13 +128,13 @@ def parse_file(file):
             columns=["node", "latitude", "longitude", "demand", "priority"],
             data=df,
         )
-    problemInfo["name"] = name;
-    problemInfo["dimension"] = dimension;
-    problemInfo["vehicles"] = vehicles;
-    problemInfo["optimal_value"] = optimal_value;
-    problemInfo["capacity"] = capacity;    
-    problemInfo["depot_node"] = depot_node;    
-    problemInfo["node_data"] = node_data;    
+    problemInfo["name"] = name
+    problemInfo["dimension"] = dimension
+    problemInfo["vehicles"] = vehicles
+    problemInfo["optimal_value"] = optimal_value
+    problemInfo["capacity"] = capacity    
+    problemInfo["depot_node"] = depot_node    
+    problemInfo["node_data"] = node_data    
     class ProblemInfo:
         def __init__(
             self,

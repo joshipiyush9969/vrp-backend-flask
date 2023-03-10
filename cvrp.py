@@ -17,82 +17,126 @@ np.random.seed(3425)
 # https://developers.google.com/optimization/routing/tsp#scaling
 scalar = 100
 
-def parse_file(file_text):
-    data = {}
-    parser = re.compile(
-        """NAME : (?P<name>.*)
-COMMENT : (?P<comment>.*)
-TYPE : (?P<type>.*)
-DIMENSION : (?P<dimension>.*)
-EDGE_WEIGHT_TYPE : (?P<edge_weight_type>.*)
-CAPACITY : (?P<capacity>.*)
-NODE_COORD_SECTION\s*
-(?P<node_coord_section>[\d|\.|\-|\s]+)
-DEMAND_SECTION\s*
-(?P<demand_section>[\d|\s]+)
-DEPOT_SECTION\s*
-(?P<depot_node>.*)\s*
-""",re.MULTILINE,)
+# def parse_file(file_text):
 
-    problemInfo = {}
-    matches = parser.match(file_text)
-    if matches:
-        # trim parsed values
-        data = matches.groupdict()
-        for key, val in data.items():
-            data[key] = val.strip()
+#     data = {}
+#     parser = re.compile(
+#         """NAME : (?P<name>.*)
+# COMMENT : (?P<comment>.*)
+# TYPE : (?P<type>.*)
+# DIMENSION : (?P<dimension>.*)
+# EDGE_WEIGHT_TYPE : (?P<edge_weight_type>.*)
+# CAPACITY : (?P<capacity>.*)
+# NODE_COORD_SECTION\s*
+# (?P<node_coord_section>[\d|\.|\-|\s]+)
+# DEMAND_SECTION\s*
+# (?P<demand_section>[\d|\s]+)
+# DEPOT_SECTION\s*
+# (?P<depot_node>.*)\s*
+# """,re.MULTILINE,)
 
-        other = re.match(
-            ".*No of trucks: (?P<vehicles>\d+)(, Optimal value: (?P<optimal_value>\d+))?.*",
-            data["comment"],
-        )
-        data.update({
-                "vehicles": other.groupdict().get("vehicles", None), 
-                "optimal_value": other.groupdict().get("optimal_value", None)
-            }
-        )
-        data["node_coord_section"] = [
-            list(map(lambda y: float(y.strip()), x))
-            for x in map(
-                lambda x: x.strip().split(" ", 2), data["node_coord_section"].split("\n")
-            )
-        ]
-        data["demand_section"] = [
-            list(map(lambda y: int(y.strip()), x))[1:]
-            for x in map(
-                lambda x: x.strip().split(" ", 1), data["demand_section"].split("\n")
-            )
-        ]
-        # sets all priority col to zero
-        # data["priority"] = np.zeros(
-        #     (int(data["dimension"]), 1), dtype=int
-        # )
-        data["priority"] = [0, *np.random.choice(
-            a=[0, 1, 2], 
-            size=(int(data["dimension"])-1),
-            p=[0.93, 0.06, 0.01],
-        )]
+#     problemInfo = {}
+#     matches = parser.match(file_text)
+#     if matches:
+#         # trim parsed values
+#         data = matches.groupdict()
+#         for key, val in data.items():
+#             data[key] = val.strip()
 
-        combined_cols = np.c_[
-            data["node_coord_section"], data["demand_section"], data["priority"]
-        ]
-        data["node_data"] = pd.DataFrame(
+#         other = re.match(
+#             ".*No of trucks: (?P<vehicles>\d+)(, Optimal value: (?P<optimal_value>\d+))?.*",
+#             data["comment"],
+#         )
+#         data.update({
+#                 "vehicles": other.groupdict().get("vehicles", None), 
+#                 "optimal_value": other.groupdict().get("optimal_value", None)
+#             }
+#         )
+#         data["node_coord_section"] = [
+#             list(map(lambda y: float(y.strip()), x))
+#             for x in map(
+#                 lambda x: x.strip().split(" ", 2), data["node_coord_section"].split("\n")
+#             )
+#         ]
+#         data["demand_section"] = [
+#             list(map(lambda y: int(y.strip()), x))[1:]
+#             for x in map(
+#                 lambda x: x.strip().split(" ", 1), data["demand_section"].split("\n")
+#             )
+#         ]
+#         # sets all priority col to zero
+#         # data["priority"] = np.zeros(
+#         #     (int(data["dimension"]), 1), dtype=int
+#         # )
+#         data["priority"] = [0, *np.random.choice(
+#             a=[0, 1, 2], 
+#             size=(int(data["dimension"])-1),
+#             p=[0.93, 0.06, 0.01],
+#         )]
+
+#         combined_cols = np.c_[
+#             data["node_coord_section"], data["demand_section"], data["priority"]
+#         ]
+#         data["node_data"] = pd.DataFrame(
+#             columns=["node", "latitude", "longitude", "demand", "priority"],
+#             data=combined_cols,
+#         )
+#         # print(data)
+#         # currently capacity is a constant value; change to array for variable truck capacity
+#         for key in [
+#             "name",
+#             "dimension",
+#             "vehicles",
+#             "optimal_value",
+#             "capacity",
+#             "depot_node",
+#             "node_data",
+#         ]:
+#             problemInfo[key] = data[key]
+
+#     class ProblemInfo:
+#         def __init__(
+#             self,
+#             name,
+#             dimension,
+#             vehicles,
+#             optimal_value,
+#             capacity,
+#             depot_node,
+#             node_data,
+#         ):
+#             self.name = name
+#             self.dimension = int(dimension)
+#             self.vehicles = int(vehicles)
+#             self.optimal_value = int(optimal_value) if optimal_value else None
+#             self.capacity = int(capacity)
+#             self.depot_node = int(depot_node)
+#             self.node_data = node_data
+
+#     p1 = ProblemInfo(**problemInfo)
+
+#     return p1
+
+def parse_file(file):
+    problemInfo={}
+    df = pd.read_excel(file);
+    capacity = df['capacity'][0]
+    vehicles = df['no_of_trucks'][0]
+    dimension = df['dimension'][0]
+    depot_node = df['depot_node'][0]
+    optimal_value = df['optimal_value'][0] 
+    name = df['name'][0] 
+    node_data =  pd.DataFrame(
             columns=["node", "latitude", "longitude", "demand", "priority"],
-            data=combined_cols,
+            data=df,
         )
-        # print(data)
-        # currently capacity is a constant value; change to array for variable truck capacity
-        for key in [
-            "name",
-            "dimension",
-            "vehicles",
-            "optimal_value",
-            "capacity",
-            "depot_node",
-            "node_data",
-        ]:
-            problemInfo[key] = data[key]
-
+    problemInfo["name"] = name;
+    problemInfo["dimension"] = dimension;
+    problemInfo["vehicles"] = vehicles;
+    problemInfo["optimal_value"] = optimal_value;
+    problemInfo["capacity"] = capacity;    
+    problemInfo["depot_node"] = depot_node;    
+    problemInfo["node_data"] = node_data;    
     class ProblemInfo:
         def __init__(
             self,
@@ -113,8 +157,8 @@ DEPOT_SECTION\s*
             self.node_data = node_data
 
     p1 = ProblemInfo(**problemInfo)
-
     return p1
+
 
 def distance(lat1, lat2, lon1, lon2):
 

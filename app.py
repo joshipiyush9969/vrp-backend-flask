@@ -5,6 +5,7 @@ import threading
 import requests
 import traceback
 import pandas as pd
+import numpy as np
 import datetime
 from datetime import timezone
 from flask import Flask, flash, jsonify, request
@@ -18,6 +19,10 @@ from gql.transport.requests import RequestsHTTPTransport
 
 app = Flask(__name__)
 CORS(app)
+
+# constant seed for reproducibility
+np.random.seed(3425)
+
 # Check running of instances for reverse proxy
 check = randint(0, 9999)
 
@@ -193,13 +198,17 @@ def distribute_task(**kwargs):
 
     payload_queue = [{
         "id": id,
-        "capacities": [p1.capacity for x in range(vehicles[i])], 
+        "capacities": np.random.choice(
+            a=[p1.capacity+j*10 for j in range(3)], 
+            size=vehicles[i],
+        ).tolist(),
+        # "capacities": [p1.capacity for x in range(vehicles[i])], 
         "num_of_vehicles": vehicles[i],
         "depot": depot.to_json(orient="records"),
         "data":clusters[i].to_json(orient="records"),
         "timeout": 10,
     } for i in range(len(vehicles))]
-        
+
     url = f"{os.environ.get('SOLVER_URL')}/route?clustered=1"
     headers = {'content-type': 'application/json'}
     while payload_queue:

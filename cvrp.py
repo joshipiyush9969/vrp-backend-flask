@@ -11,8 +11,6 @@ import random
 from sklearn.cluster import KMeans
 from k_means_constrained import KMeansConstrained
 
-np.random.seed(3425)
-
 # Default scaling factor for distance matrix is 100
 # https://developers.google.com/optimization/routing/tsp#scaling
 scalar = 100

@@ -182,7 +182,7 @@ def find_route(node_data, vehicle_capacities, no_of_vehicles, timeout):
 
     matrix_d = []
     demand = []
-    priority = []
+    priorities = []
     # vehicle_capacities = [100, 100, 100, 100, 100] 
     # no_of_vehicles = 5  
 
@@ -195,7 +195,7 @@ def find_route(node_data, vehicle_capacities, no_of_vehicles, timeout):
     # p#print(matrix_d)
     demand = node_data["demand"].copy()
     priorities = node_data["priority"].copy()
-
+    depot = node_data["node"].index.values[0].item()
     # while sum(vehicle_capacities) < sum(demand):
     #     capacity = []
     #     for i in range(no_of_vehicles):
@@ -208,7 +208,7 @@ def find_route(node_data, vehicle_capacities, no_of_vehicles, timeout):
     #print("vehicle capacity =>", vehicle_capacities)
 
     # or tools
-    data = create_data_model(matrix_d, demand, vehicle_capacities, no_of_vehicles, priorities)
+    data = create_data_model(matrix_d, depot, vehicle_capacities, no_of_vehicles, demand, priorities)
     route = generate_routes(data, timeout)
     return route
 

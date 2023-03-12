@@ -3,14 +3,14 @@ from ortools.constraint_solver import pywrapcp
 
 scalar = 100
 
-def create_data_model(matrix_d,demand,vehicle_capacities,no_of_vehicles,priorities):
+def create_data_model(matrix_d,depot,vehicle_capacities,no_of_vehicles,demand,priorities):
     data = {}
     data["distance_matrix"] = matrix_d
     data["demands"] = demand
     data["vehicle_capacities"] = vehicle_capacities
     data["num_vehicles"] = no_of_vehicles
     data["priorities"] = priorities
-    data["depot"] = 0
+    data["depot"] = depot
     return data
 
 

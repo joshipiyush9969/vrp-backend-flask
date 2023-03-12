@@ -178,7 +178,7 @@ def distance(lat1, lat2, lon1, lon2):
     return c * r
 
 
-def find_route(node_data, vehicle_capacities, no_of_vehicles, timeout):
+def find_route(node_data, vehicle_capacities, timeout):
 
     matrix_d = []
     demand = []
@@ -208,7 +208,7 @@ def find_route(node_data, vehicle_capacities, no_of_vehicles, timeout):
     #print("vehicle capacity =>", vehicle_capacities)
 
     # or tools
-    data = create_data_model(matrix_d, depot, vehicle_capacities, no_of_vehicles, demand, priorities)
+    data = create_data_model(matrix_d, depot, vehicle_capacities, demand, priorities)
     route = generate_routes(data, timeout)
     return route
 

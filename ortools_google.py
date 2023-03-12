@@ -3,12 +3,12 @@ from ortools.constraint_solver import pywrapcp
 
 scalar = 100
 
-def create_data_model(matrix_d,depot,vehicle_capacities,no_of_vehicles,demand,priorities):
+def create_data_model(matrix_d,depot,vehicle_capacities,demand,priorities):
     data = {}
     data["distance_matrix"] = matrix_d
     data["demands"] = demand
     data["vehicle_capacities"] = vehicle_capacities
-    data["num_vehicles"] = no_of_vehicles
+    data["num_vehicles"] = len(vehicle_capacities)
     data["priorities"] = priorities
     data["depot"] = depot
     return data
@@ -67,31 +67,6 @@ def generate_routes(data, timeout):
     # Create Routing Model.
     routing = pywrapcp.RoutingModel(manager)
 
-    # # Add Priority constraint.
-    # priority_callback_indices = []
-    # priority_coefficient = 10000
-    # def priority_callback(from_index, to_index):
-    #     """Returns the priority of the node."""
-    #     # Convert from routing variable Index to priorities NodeIndex.
-    #     from_index = manager.IndexToNode(from_index)
-    #     to_index = manager.IndexToNode(to_index)
-    #     # Set the priority coefficient to be higher for higher priority tasks 
-    #     p = data["priorities"][to_index] * priority_coefficient
-    #     priority_callback_indices.append(p)
-    #     return p
-    
-    # priority_callback_index = routing.RegisterUnaryTransitCallback(
-    #         priority_callback
-    #     )
-        
-    # # Add the priority dimension to the model
-    # routing.AddDimensionWithVehicleTransits(
-    #         lambda x: priority_callback_indices, 0, data["vehicle_capacities"][0], True, "Priority"
-    #     )
-
-    # routing.SetArcCostEvaluatorOfAllVehicles(priority_callback_index)
-
-    # Create and register a transit callback.
     def distance_callback(from_index, to_index):
         """Returns the distance between the two nodes."""
         # Convert from routing variable Index to distance matrix NodeIndex.
@@ -123,6 +98,34 @@ def generate_routes(data, timeout):
             True,  # start cumul to zero
             "Capacity"
         )
+    
+    # # Add Priority constraint. Try Soft constraint
+    # priority_coefficient = 10
+    # def priority_callback(from_index, to_index):
+    #     """Returns the priority of the node."""
+    #     # Convert from routing variable Index to priorities NodeIndex.
+    #     from_index = manager.IndexToNode(from_index)
+    #     to_index = manager.IndexToNode(to_index)
+    #     # Set the priority coefficient to be higher for higher priority tasks 
+    #     p = data["priorities"][to_index] * priority_coefficient
+    #     return p
+    
+    # priority_callback_index = routing.RegisterTransitCallback(
+    #         priority_callback
+    #     )
+        
+    # # Add the priority dimension to the model
+    # routing.AddDimension(
+    #         priority_callback_index, 
+    #         0, 
+    #         data["priorities"].multiply(priority_coefficient).sum().item(), 
+    #         True, 
+    #         "Priority"
+    #     )
+    # priority_dimension = routing.GetDimensionOrDie("Priority")
+    # for i in range(data['num_vehicles']):
+    #     routing.AddVariableMinimizedByFinalizer(priority_dimension.CumulVar(routing.Start(i)))
+    #     routing.AddVariableMinimizedByFinalizer(priority_dimension.CumulVar(routing.End(i)))
 
     # Setting first solution heuristic.
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()

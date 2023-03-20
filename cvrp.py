@@ -4,7 +4,7 @@ import numpy as np
 import re
 from operator import itemgetter
 from ortools_google import *
-
+import itertools
 from math import radians, cos, sin, asin, sqrt
 from pprint import pprint
 import random
@@ -157,6 +157,8 @@ def parse_file(file):
 
 
 def distance(lat1, lat2, lon1, lon2):
+    # # Euclidean distance
+    # return math.ceil(math.dist([lat1, lon1], [lat2, lon2]))
 
     # The math module contains a function named
     # radians which converts from degrees to radians.
@@ -180,19 +182,33 @@ def distance(lat1, lat2, lon1, lon2):
 
 def find_route(node_data, vehicle_capacities, timeout):
 
-    matrix_d = []
+    cost_matrix = []
+    distance_matrix = []
     demand = []
     priorities = []
     # vehicle_capacities = [100, 100, 100, 100, 100] 
     # no_of_vehicles = 5  
+    lowest_priority = node_data["priority"].max()
+    unique_priorities_count = len(node_data["priority"].unique())
 
+    # Construct distance matrix
     for lat1, lon1 in zip(node_data["latitude"], node_data["longitude"]):
-        node = []
+        node_d = []
         for lat2, lon2 in zip(node_data["latitude"], node_data["longitude"]):
-            node.append(int(distance(lat1, lat2, lon1, lon2) * scalar))
-        matrix_d.append(node)
+            node_d.append(int(distance(lat1, lat2, lon1, lon2) * scalar))
+        distance_matrix.append(node_d)
 
-    # p#print(matrix_d)
+    shortest_arc = min(list(itertools.chain(*distance_matrix)))
+    for lat1, lon1 in zip(node_data["latitude"], node_data["longitude"]):
+        node_c = []
+        for lat2, lon2, pri2 in zip(node_data["latitude"], node_data["longitude"], node_data["priority"]):
+            if pri2 == lowest_priority:
+                node_c.append(int(distance(lat1, lat2, lon1, lon2) * scalar))
+            else:
+                node_c.append(pri2 * shortest_arc)
+        cost_matrix.append(node_c)
+
+    # p#print(cost_matrix)
     demand = node_data["demand"].copy()
     priorities = node_data["priority"].copy()
     depot = node_data["node"].index.values[0].item()
@@ -202,13 +218,13 @@ def find_route(node_data, vehicle_capacities, timeout):
     #         capacity.append(random.randint(max(demand), 100))
     #     vehicle_capacities = capacity
 
-    #pprint(matrix_d)
+    #pprint(cost_matrix)
     #print("demand =>", demand)
     #print("no.of vehicles =>", no_of_vehicles)
     #print("vehicle capacity =>", vehicle_capacities)
 
     # or tools
-    data = create_data_model(matrix_d, depot, vehicle_capacities, demand, priorities)
+    data = create_data_model(cost_matrix, distance_matrix, depot, vehicle_capacities, demand, priorities)
     route = generate_routes(data, timeout)
     return route
 

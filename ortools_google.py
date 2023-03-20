@@ -1,11 +1,13 @@
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
+import math
 
 scalar = 100
 
-def create_data_model(matrix_d,depot,vehicle_capacities,demand,priorities):
+def create_data_model(cost_matrix,distance_matrix,depot,vehicle_capacities,demand,priorities):
     data = {}
-    data["distance_matrix"] = matrix_d
+    data["cost_matrix"] = cost_matrix
+    data["distance_matrix"] = distance_matrix
     data["demands"] = demand
     data["vehicle_capacities"] = vehicle_capacities
     data["num_vehicles"] = len(vehicle_capacities)
@@ -37,8 +39,11 @@ def print_solution(data, manager, routing, solution):
             plan_output += " {0} Load({1}) -> ".format(node_index, route_load)
             previous_index = index
             index = solution.Value(routing.NextVar(index))
-            route_distance += routing.GetArcCostForVehicle(
-                previous_index, index, vehicle_id) // scalar
+            # route_distance += routing.GetArcCostForVehicle(
+            #     previous_index, index, vehicle_id) // scalar
+            route_distance += data["distance_matrix"][
+                manager.IndexToNode(previous_index)
+                ][manager.IndexToNode(index)] // scalar
         plan_output += " {0} Load({1})\n".format(manager.IndexToNode(index),
                                                  route_load)
         plan_output += "Distance of the route: {}m\n".format(route_distance)
@@ -61,23 +66,23 @@ def generate_routes(data, timeout):
     # Instantiate the data problem.
 
     # Create the routing index manager.
-    manager = pywrapcp.RoutingIndexManager(len(data["distance_matrix"]),
+    manager = pywrapcp.RoutingIndexManager(len(data["cost_matrix"]),
                                            data["num_vehicles"], data["depot"])
 
     # Create Routing Model.
     routing = pywrapcp.RoutingModel(manager)
 
-    def distance_callback(from_index, to_index):
-        """Returns the distance between the two nodes."""
-        # Convert from routing variable Index to distance matrix NodeIndex.
+    def cost_callback(from_index, to_index):
+        """Returns the cost between the two nodes."""
+        # Convert from routing variable Index to cost matrix NodeIndex.
         from_node = manager.IndexToNode(from_index)
         to_node = manager.IndexToNode(to_index)
-        return data["distance_matrix"][from_node][to_node]
+        return data["cost_matrix"][from_node][to_node]
 
-    transit_callback_index = routing.RegisterTransitCallback(distance_callback)
+    cost_callback_index = routing.RegisterTransitCallback(cost_callback)
 
     # Define cost of each arc.
-    routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+    routing.SetArcCostEvaluatorOfAllVehicles(cost_callback_index)
 
 
     # Add Capacity constraint.
@@ -99,7 +104,7 @@ def generate_routes(data, timeout):
             "Capacity"
         )
     
-    # # Add Priority constraint. Try Soft constraint
+    # # Add Priority constraint.
     # priority_coefficient = 10
     # def priority_callback(from_index, to_index):
     #     """Returns the priority of the node."""
@@ -118,7 +123,7 @@ def generate_routes(data, timeout):
     # routing.AddDimension(
     #         priority_callback_index, 
     #         0, 
-    #         data["priorities"].multiply(priority_coefficient).sum().item(), 
+    #         data["priorities"].multiply(priority_coefficient).sum().item(),
     #         True, 
     #         "Priority"
     #     )

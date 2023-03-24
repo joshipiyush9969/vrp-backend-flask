@@ -3,7 +3,6 @@ version: "3.8"
 services:
   solver:
     image: jonty99/vrp-backend-solver:latest
-    restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
     stop_grace_period: 3s
     deploy:
       # resources:

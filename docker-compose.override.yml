@@ -6,6 +6,7 @@ services:
       args:
         - FLASK_DEBUG=true
     command: ['flask', 'run', '-h', '0.0.0.0', '-p', '8000' ]
+    restart: on-failure
     ports:
       - "8000"
     environment:

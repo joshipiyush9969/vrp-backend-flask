@@ -8,6 +8,7 @@ import itertools
 from math import radians, cos, sin, asin, sqrt
 from pprint import pprint
 import random
+import statistics
 from sklearn.cluster import KMeans
 from k_means_constrained import KMeansConstrained
 
@@ -184,12 +185,9 @@ def find_route(node_data, vehicle_capacities, timeout):
 
     cost_matrix = []
     distance_matrix = []
-    demand = []
-    priorities = []
     # vehicle_capacities = [100, 100, 100, 100, 100] 
     # no_of_vehicles = 5  
-    lowest_priority = node_data["priority"].max()
-    unique_priorities_count = len(node_data["priority"].unique())
+    unique_priorities = sorted(node_data["priority"].unique().tolist())
 
     # Construct distance matrix
     for lat1, lon1 in zip(node_data["latitude"], node_data["longitude"]):
@@ -197,34 +195,41 @@ def find_route(node_data, vehicle_capacities, timeout):
         for lat2, lon2 in zip(node_data["latitude"], node_data["longitude"]):
             node_d.append(int(distance(lat1, lat2, lon1, lon2) * scalar))
         distance_matrix.append(node_d)
+        # cost_matrix.append(node_d)
 
-    shortest_arc = min(list(itertools.chain(*distance_matrix)))
-    for lat1, lon1 in zip(node_data["latitude"], node_data["longitude"]):
+    longest_dist = max(list(itertools.chain(*distance_matrix)))
+    lowest_priority = unique_priorities[-1]
+    priority_coefficient = longest_dist
+    print('Priority Coefficient:', priority_coefficient)
+    cols = ["latitude", "longitude", "priority"]
+    for i1, (lat1, lon1, pri1) in enumerate(zip(*[node_data[k] for k in cols])):
         node_c = []
-        for lat2, lon2, pri2 in zip(node_data["latitude"], node_data["longitude"], node_data["priority"]):
-            if pri2 == lowest_priority:
-                node_c.append(int(distance(lat1, lat2, lon1, lon2) * scalar))
-            else:
-                node_c.append(pri2 * shortest_arc)
+        for i2, (lat2, lon2, pri2) in enumerate(zip(*[node_data[k] for k in cols])):
+            cost = distance_matrix[i1][i2] + (pri2*priority_coefficient)
+            node_c.append(cost)
         cost_matrix.append(node_c)
 
-    # p#print(cost_matrix)
     demand = node_data["demand"].copy()
     priorities = node_data["priority"].copy()
     depot = node_data["node"].index.values[0].item()
-    # while sum(vehicle_capacities) < sum(demand):
-    #     capacity = []
-    #     for i in range(no_of_vehicles):
-    #         capacity.append(random.randint(max(demand), 100))
-    #     vehicle_capacities = capacity
 
-    #pprint(cost_matrix)
-    #print("demand =>", demand)
-    #print("no.of vehicles =>", no_of_vehicles)
-    #print("vehicle capacity =>", vehicle_capacities)
+    priority_groups = [
+        node_data.iloc[1:].loc[
+            node_data["priority"] == p
+        ]["node"].tolist() for p in unique_priorities
+    ]
+    print("Priority Groups:", priority_groups)
 
     # or tools
-    data = create_data_model(cost_matrix, distance_matrix, depot, vehicle_capacities, demand, priorities)
+    data = create_data_model({
+        "cost_matrix": cost_matrix, 
+        "distance_matrix": distance_matrix, 
+        "priority_groups": priority_groups, 
+        "depot": depot, 
+        "vehicle_capacities": vehicle_capacities, 
+        "demand": demand, 
+        "priorities": priorities,
+    })
     route = generate_routes(data, timeout)
     return route
 

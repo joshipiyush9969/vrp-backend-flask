@@ -1,18 +1,20 @@
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 import math
+import itertools
 
 scalar = 100
 
-def create_data_model(cost_matrix,distance_matrix,depot,vehicle_capacities,demand,priorities):
+def create_data_model(obj):
     data = {}
-    data["cost_matrix"] = cost_matrix
-    data["distance_matrix"] = distance_matrix
-    data["demands"] = demand
-    data["vehicle_capacities"] = vehicle_capacities
-    data["num_vehicles"] = len(vehicle_capacities)
-    data["priorities"] = priorities
-    data["depot"] = depot
+    data["cost_matrix"] = obj.get("cost_matrix")
+    data["distance_matrix"] = obj.get("distance_matrix")
+    data["priority_groups"] = obj.get("priority_groups")
+    data["demands"] = obj.get("demand")
+    data["vehicle_capacities"] = obj.get("vehicle_capacities")
+    data["num_vehicles"] = len(obj.get("vehicle_capacities"))
+    data["priorities"] = obj.get("priorities")
+    data["depot"] = obj.get("depot")
     return data
 
 
@@ -104,33 +106,26 @@ def generate_routes(data, timeout):
             "Capacity"
         )
     
-    # # Add Priority constraint.
-    # priority_coefficient = 10
-    # def priority_callback(from_index, to_index):
-    #     """Returns the priority of the node."""
-    #     # Convert from routing variable Index to priorities NodeIndex.
-    #     from_index = manager.IndexToNode(from_index)
-    #     to_index = manager.IndexToNode(to_index)
-    #     # Set the priority coefficient to be higher for higher priority tasks 
-    #     p = data["priorities"][to_index] * priority_coefficient
-    #     return p
-    
-    # priority_callback_index = routing.RegisterTransitCallback(
-    #         priority_callback
-    #     )
-        
-    # # Add the priority dimension to the model
-    # routing.AddDimension(
-    #         priority_callback_index, 
-    #         0, 
-    #         data["priorities"].multiply(priority_coefficient).sum().item(),
-    #         True, 
-    #         "Priority"
-    #     )
-    # priority_dimension = routing.GetDimensionOrDie("Priority")
-    # for i in range(data['num_vehicles']):
-    #     routing.AddVariableMinimizedByFinalizer(priority_dimension.CumulVar(routing.Start(i)))
-    #     routing.AddVariableMinimizedByFinalizer(priority_dimension.CumulVar(routing.End(i)))
+    # Add Priority constraint.
+    # for i, group in enumerate(data["priority_groups"]):
+    #     for n in group:
+    #         routing.NextVar(manager.NodeToIndex(n)).RemoveValues(
+    #             list(map(manager.NodeToIndex, list(itertools.chain(*data["priority_groups"][0:i]))))
+    #         )
+
+    # # https://groups.google.com/g/or-tools-discuss/c/HsioeGr8DyA
+    # high_priority_var_index = routing.NodeToIndex(highPriorityOrderIndex)
+    # low_priority_var_index = routing.NodeToIndex(lowPriorityOrderIndex)
+    # same_vehicle_constraint = solver.MakeEquality(
+    #     routing.VehicleVar(high_priority_var_index), 
+    #     routing.VehicleVar(low_priority_var_index)
+    # )
+    # priority_contraint = solver.MakeLessOrEqual(
+    #     routing.CumulVar(high_priority_var_index, TimeDimensionName),
+    #     routing.CumulVar(low_priority_var_index, TimeDimensionName)
+    # )
+    # expression = solver.MakeConditionalExpression(same_vehicle_constraint, priority_contraint, 1)
+    # constraint = solver.MakeGreaterOrEqual(expression, 1)
 
     # Setting first solution heuristic.
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
@@ -148,9 +143,3 @@ def generate_routes(data, timeout):
     if solution:
         v_routes = print_solution(data, manager, routing, solution)
         return v_routes
-
-
-
-
-# if __name__ == "__main__":
-#     main()
